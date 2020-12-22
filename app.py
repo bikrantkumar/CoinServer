@@ -84,71 +84,68 @@ class Blockchain:
             return True
         return False
 
-def deploy():
-    app = Flask( __name__)
-    node_address = str(uuid4()).replace('-','')
-    blockchain = Blockchain()
-    @app.route('/mine_block', methods = ['GET'])
-    def mine_block():
-        prev_block = blockchain.get_prev_block()
-        prev_proof = prev_block['proof']
-        proof = blockchain.proof_of_work(prev_proof)
-        prev_hash = blockchain.hash(prev_block)
-        blockchain.add_transaction(sender = node_address, receiver = 'Miner', amount = 10)
-        block = blockchain.create_block(proof, prev_hash)
-        response = {'message' : 'You just mined a block!',
-                    'index' : block['index'],
-                    'timestamp' : block['timestamp'],
-                    'proof' : block['proof'],
-                    'prev_hash' : block['prev_hash'],
-                    'transactions' : block['transactions']}
-        return jsonify(response), 200
-        
-    @app.route('/get_chain', methods=['GET'])
-    def get_chain():
-        response = {'chain' : blockchain.chain,
-                    'length' : len(blockchain.chain)}
-        return jsonify(response), 200
+app = Flask( __name__)
+node_address = str(uuid4()).replace('-','')
+blockchain = Blockchain()
+@app.route('/mine_block', methods = ['GET'])
+def mine_block():
+    prev_block = blockchain.get_prev_block()
+    prev_proof = prev_block['proof']
+    proof = blockchain.proof_of_work(prev_proof)
+    prev_hash = blockchain.hash(prev_block)
+    blockchain.add_transaction(sender = node_address, receiver = 'Miner', amount = 10)
+    block = blockchain.create_block(proof, prev_hash)
+    response = {'message' : 'You just mined a block!',
+                'index' : block['index'],
+                'timestamp' : block['timestamp'],
+                'proof' : block['proof'],
+                'prev_hash' : block['prev_hash'],
+                'transactions' : block['transactions']}
+    return jsonify(response), 200
+    
+@app.route('/get_chain', methods=['GET'])
+def get_chain():
+    response = {'chain' : blockchain.chain,
+                'length' : len(blockchain.chain)}
+    return jsonify(response), 200
 
-    @app.route('/is_valid', methods=['GET'])
-    def is_valid():
-        return jsonify(blockchain.is_chain_valid(blockchain.chain)), 200
+@app.route('/is_valid', methods=['GET'])
+def is_valid():
+    return jsonify(blockchain.is_chain_valid(blockchain.chain)), 200
 
-    @app.route('/add_transaction', methods=['POST'])
-    def add_transaction():
-        json = request.get_json()
-        transaction_keys = ['sender', 'receiver', 'amount']
-        if not all (key in json for key in transaction_keys):
-            return 'Recheck it out!', 400
-        index = blockchain.add_transaction(json['sender'], json['receiver'], json['amount'])
-        response = {'message' : f'This transaction will be added to Block {index}'}
-        return jsonify(response), 201
+@app.route('/add_transaction', methods=['POST'])
+def add_transaction():
+    json = request.get_json()
+    transaction_keys = ['sender', 'receiver', 'amount']
+    if not all (key in json for key in transaction_keys):
+        return 'Recheck it out!', 400
+    index = blockchain.add_transaction(json['sender'], json['receiver'], json['amount'])
+    response = {'message' : f'This transaction will be added to Block {index}'}
+    return jsonify(response), 201
 
-    @app.route('/connect_node', methods=['POST'])
-    def connect_node():
-        json = request.get_json()
-        nodes = json.get('nodes')
-        if nodes is None:
-            return 'Recheck it out!',400
-        for node in nodes:
-            blockchain.add_node(node)
-        response = {'message' : 'All the nodes are now connected. The safecoin Blockchain now contains the following nodes:',
-                    'total_nodes' : list(blockchain.nodes)}
-        return jsonify(response), 201
+@app.route('/connect_node', methods=['POST'])
+def connect_node():
+    json = request.get_json()
+    nodes = json.get('nodes')
+    if nodes is None:
+        return 'Recheck it out!',400
+    for node in nodes:
+        blockchain.add_node(node)
+    response = {'message' : 'All the nodes are now connected. The safecoin Blockchain now contains the following nodes:',
+                'total_nodes' : list(blockchain.nodes)}
+    return jsonify(response), 201
 
-    @app.route('/replace_chain', methods=['GET'])
-    def replace_chain():
-        is_chain_replaced= blockchain.replace_chain()
-        if is_chain_replaced:
-            response = {'message' : 'Chain replaced by the longest one!',
-                        'new_chain' : blockchain.chain}
-        else:
-            response = {'message' : 'All good. The chain is the longest one!',
-                        'chain' : blockchain.chain}
-        return jsonify(response), 200
-    return app
+@app.route('/replace_chain', methods=['GET'])
+def replace_chain():
+    is_chain_replaced= blockchain.replace_chain()
+    if is_chain_replaced:
+        response = {'message' : 'Chain replaced by the longest one!',
+                    'new_chain' : blockchain.chain}
+    else:
+        response = {'message' : 'All good. The chain is the longest one!',
+                    'chain' : blockchain.chain}
+    return jsonify(response), 200
 if __name__ == "__main__":
-    app = deploy()
     app.run(debug=True)
         
         
