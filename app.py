@@ -83,17 +83,39 @@ class Blockchain:
             self.chain = longest_chain
             return True
         return False
+class Wallet:
+    def __init__(self):
+        self.balance = 0
+        self.wallet_address = str(uuid4()).replace('-','')
+    def add_reward(self, reward):
+        self.balance += reward
+        
+wallet = Wallet()
+node_address = wallet.wallet_address
 
 app = Flask( __name__)
-node_address = str(uuid4()).replace('-','')
 blockchain = Blockchain()
+
+@app.route('/wallet_details' ,methods=['GET'])
+def wallet_details():
+    response = {
+        'node_address': node_address,
+        'balance':wallet.balance
+    }
+    return jsonify(response),200
+
 @app.route('/mine_block', methods = ['GET'])
 def mine_block():
+    json = request.get_json()
+    global balance
     prev_block = blockchain.get_prev_block()
     prev_proof = prev_block['proof']
     proof = blockchain.proof_of_work(prev_proof)
     prev_hash = blockchain.hash(prev_block)
-    blockchain.add_transaction(sender = node_address, receiver = 'Miner', amount = 10)
+    blockchain.add_transaction(sender = 'Miner_Reward', receiver = node_address, amount = 10)
+    wallet.add_reward(10)
+    #balance += 10
+    #update_balance()
     block = blockchain.create_block(proof, prev_hash)
     response = {'message' : 'You just mined a block!',
                 'index' : block['index'],
@@ -117,6 +139,7 @@ def is_valid():
 def add_transaction():
     json = request.get_json()
     transaction_keys = ['sender', 'receiver', 'amount']
+    #balance += json['amount']
     if not all (key in json for key in transaction_keys):
         return 'Recheck it out!', 400
     index = blockchain.add_transaction(json['sender'], json['receiver'], json['amount'])
